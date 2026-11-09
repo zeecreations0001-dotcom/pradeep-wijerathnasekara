@@ -1,0 +1,6 @@
+{
+  "name": "The Newspaper - Magazine & Editorial",
+  "description": "A reproduction of The Newspaper magazine & editorial WordPress theme with classic typography, breaking news, daily feed, featured stories, and interactive reader.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

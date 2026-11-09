@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-masthead: 'Playfair Display', 'Abhaya Libre', 'Cinzel', Georgia, serif;
+    --font-headline: 'Playfair Display', 'Abhaya Libre', Georgia, serif;
+    --font-editorial: 'Libre Baskerville', 'Abhaya Libre', 'Newsreader', Georgia, serif;
+    --font-sans: 'Inter', 'Noto Sans Sinhala', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    /* Bright radiant gold newsprint palette */
+    --color-paper: #faf6ee;
+    --color-paper-card: #fdfbf7;
+    --color-paper-warm: #fcf6e8;
+    --color-gold-primary: #f59e0b;
+    --color-gold-bright: #fbbf24;
+    --color-gold-deep: #d97706;
+    --color-gold-light: #fef3c7;
+    --color-gold-border: #fcd34d;
+    --color-sepia-border: #f2e4cb;
+
+    /* Bright gold accents */
+    --color-bright-gold: #facc15;
+    --color-bright-gold-light: #fef08a;
+    --color-bright-gold-hover: #ffd700;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #000000;
+    background-color: var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #fde047;
+    color: #000000;
+  }
+}
+
+.font-masthead {
+  font-family: var(--font-masthead);
+}
+
+.font-headline {
+  font-family: var(--font-headline);
+}
+
+.font-editorial {
+  font-family: var(--font-editorial);
+}
+
+/* Warm Newspaper Rules */
+.newspaper-rule-double {
+  border-top: 3px double #332b20;
+}
+
+.newspaper-rule-thick {
+  border-top: 3px solid #282116;
+}
+
+.newspaper-divider {
+  border-color: #e5dac6;
+}
+
+/* Warm sepia-infused newspaper image styling */
+.newspaper-grayscale {
+  filter: grayscale(80%) sepia(20%) contrast(105%);
+  transition: filter 0.3s ease;
+}
+
+.newspaper-grayscale:hover {
+  filter: grayscale(0%) sepia(8%) contrast(102%);
+}
+
+/* Drop cap with bright radiant gold accent */
+.first-letter-drop::first-letter {
+  font-family: var(--font-masthead);
+  float: left;
+  font-size: 3.5rem;
+  line-height: 0.85;
+  padding-top: 4px;
+  padding-right: 10px;
+  padding-bottom: 2px;
+  font-weight: 700;
+  color: #d97706;
+}
+
+/* Authentic newspaper reading paper background */
+.paper-reading-parchment {
+  background-color: #faf5ea;
+  background-image: 
+    radial-gradient(#dfcead 0.8px, transparent 0.8px),
+    radial-gradient(#eedfca 0.8px, #faf5ea 0.8px);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+
+/* Highly visible warm golden scrollbar for entire website */
+html {
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto !important;
+  scrollbar-color: #d97706 #f4ebdc !important;
+}
+
+body {
+  scrollbar-width: auto !important;
+  scrollbar-color: #d97706 #f4ebdc !important;
+}
+
+/* Force visible custom scrollbar on all WebKit / Chromium browsers */
+::-webkit-scrollbar,
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 14px !important;
+  height: 14px !important;
+  display: block !important;
+  -webkit-appearance: none !important;
+}
+
+::-webkit-scrollbar-track,
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: #f4ebdc !important;
+  border-left: 1px solid #dfcead !important;
+}
+
+::-webkit-scrollbar-thumb,
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: #d97706 !important;
+  border-radius: 7px !important;
+  border: 2px solid #f4ebdc !important;
+  min-height: 48px !important;
+  display: block !important;
+}
+
+::-webkit-scrollbar-thumb:hover,
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: #b45309 !important;
+}
+
+/* Highly visible scrollbar for modals & article reading view */
+.modal-scroll-container {
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: auto !important;
+  scrollbar-color: #facc15 #1b1712 !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar {
+  width: 14px !important;
+  display: block !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-track {
+  background: #1b1712 !important;
+  border-left: 1px solid #38332c !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb {
+  background: #facc15 !important;
+  border-radius: 7px !important;
+  border: 2px solid #1b1712 !important;
+  min-height: 48px !important;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #ffd700 !important;
+}
+
