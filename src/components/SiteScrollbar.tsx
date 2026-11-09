@@ -117,7 +117,7 @@ export const SiteScrollbar: React.FC<SiteScrollbarProps> = ({ language }) => {
         onClick={handleTrackClick}
         aria-label="Website Scrollbar Track"
         title={`Website Scrollbar: ${Math.round(scrollProgress)}%`}
-        className="fixed right-1 sm:right-2 top-24 bottom-28 sm:bottom-24 w-3 sm:w-3.5 z-30 bg-[#1b1712]/85 hover:bg-[#1b1712] backdrop-blur-md rounded-full border border-[#facc15]/50 shadow-2xl relative cursor-pointer touch-none select-none transition-all group"
+        className="hidden 2xl:block fixed right-2 top-24 bottom-28 w-3.5 z-30 bg-[#1b1712]/85 hover:bg-[#1b1712] backdrop-blur-md rounded-full border border-[#facc15]/50 shadow-2xl relative cursor-pointer touch-none select-none transition-all group"
       >
         {/* Scrollbar thumb */}
         <div

@@ -96,54 +96,43 @@
   background-position: 0 0, 14px 14px;
 }
 
-/* Highly visible warm golden scrollbar for entire website */
+/* Highly visible warm golden scrollbar for entire website on Chrome & modern browsers */
 html {
-  overflow-y: scroll !important;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
-  scrollbar-width: auto !important;
-  scrollbar-color: #d97706 #f4ebdc !important;
+  scrollbar-width: thin;
+  scrollbar-color: #d97706 #f4ebdc;
 }
 
 body {
-  scrollbar-width: auto !important;
-  scrollbar-color: #d97706 #f4ebdc !important;
+  scrollbar-width: thin;
+  scrollbar-color: #d97706 #f4ebdc;
 }
 
-/* Force visible custom scrollbar on all WebKit / Chromium browsers */
-::-webkit-scrollbar,
+/* Chrome / Chromium / WebKit scrollbar restricted specifically to html and body */
 html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-*::-webkit-scrollbar {
-  width: 14px !important;
-  height: 14px !important;
-  display: block !important;
-  -webkit-appearance: none !important;
+body::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-::-webkit-scrollbar-track,
 html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track,
-*::-webkit-scrollbar-track {
-  background: #f4ebdc !important;
-  border-left: 1px solid #dfcead !important;
+body::-webkit-scrollbar-track {
+  background: #f4ebdc;
+  border-left: 1px solid #dfcead;
 }
 
-::-webkit-scrollbar-thumb,
 html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb,
-*::-webkit-scrollbar-thumb {
-  background: #d97706 !important;
-  border-radius: 7px !important;
-  border: 2px solid #f4ebdc !important;
-  min-height: 48px !important;
-  display: block !important;
+body::-webkit-scrollbar-thumb {
+  background: #d97706;
+  border-radius: 5px;
+  border: 2px solid #f4ebdc;
+  min-height: 48px;
 }
 
-::-webkit-scrollbar-thumb:hover,
 html::-webkit-scrollbar-thumb:hover,
-body::-webkit-scrollbar-thumb:hover,
-*::-webkit-scrollbar-thumb:hover {
-  background: #b45309 !important;
+body::-webkit-scrollbar-thumb:hover {
+  background: #b45309;
 }
 
 /* Highly visible scrollbar for modals & article reading view */
@@ -175,5 +164,17 @@ body::-webkit-scrollbar-thumb:hover,
 
 .modal-scroll-container::-webkit-scrollbar-thumb:hover {
   background: #ffd700 !important;
+}
+
+/* Hide scrollbars for clean horizontal carousels in Chrome, Safari & Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 

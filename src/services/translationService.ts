@@ -39,7 +39,7 @@ export async function translateArticle({
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8500);
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
 
     const response = await fetch('/api/translate-article', {
       method: 'POST',

@@ -503,7 +503,10 @@ export default function App() {
         <div className="block lg:hidden mb-5">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             <button
-              onClick={() => setMobileSectionTab('all')}
+              onClick={() => {
+                setMobileSectionTab('all');
+                window.scrollTo({ top: 180, behavior: 'smooth' });
+              }}
               className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xs tracking-wider shrink-0 transition-all min-h-[34px] flex items-center gap-1 cursor-pointer ${
                 mobileSectionTab === 'all'
                   ? 'bg-black text-[#facc15] shadow-xs'
@@ -513,7 +516,10 @@ export default function App() {
               <span>{language === 'si' ? 'සියල්ල' : 'All Sections'}</span>
             </button>
             <button
-              onClick={() => setMobileSectionTab('breaking')}
+              onClick={() => {
+                setMobileSectionTab('breaking');
+                document.getElementById('breaking-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xs tracking-wider shrink-0 transition-all min-h-[34px] flex items-center gap-1 cursor-pointer ${
                 mobileSectionTab === 'breaking'
                   ? 'bg-black text-[#facc15] shadow-xs'
@@ -524,7 +530,10 @@ export default function App() {
               <span>{language === 'si' ? 'ප්‍රධාන පුවත්' : 'Top Stories'}</span>
             </button>
             <button
-              onClick={() => setMobileSectionTab('feed')}
+              onClick={() => {
+                setMobileSectionTab('feed');
+                document.getElementById('feed-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xs tracking-wider shrink-0 transition-all min-h-[34px] flex items-center gap-1 cursor-pointer ${
                 mobileSectionTab === 'feed'
                   ? 'bg-black text-[#facc15] shadow-xs'
@@ -535,7 +544,10 @@ export default function App() {
               <span>{language === 'si' ? 'දෛනික පුවත්' : 'Daily Feed'}</span>
             </button>
             <button
-              onClick={() => setMobileSectionTab('popular')}
+              onClick={() => {
+                setMobileSectionTab('popular');
+                document.getElementById('sidebar-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xs tracking-wider shrink-0 transition-all min-h-[34px] flex items-center gap-1 cursor-pointer ${
                 mobileSectionTab === 'popular'
                   ? 'bg-black text-[#facc15] shadow-xs'
@@ -546,7 +558,10 @@ export default function App() {
               <span>{language === 'si' ? 'ජනප්‍රිය' : 'Popular'}</span>
             </button>
             <button
-              onClick={() => setMobileSectionTab('featured')}
+              onClick={() => {
+                setMobileSectionTab('featured');
+                document.getElementById('featured-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className={`px-3 py-1.5 text-xs font-bold uppercase rounded-xs tracking-wider shrink-0 transition-all min-h-[34px] flex items-center gap-1 cursor-pointer ${
                 mobileSectionTab === 'featured'
                   ? 'bg-black text-[#facc15] shadow-xs'
@@ -559,39 +574,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* 3-Column Newspaper Top Section: Breaking News (Hero lead story), Left column (Side dispatches), Daily feed (Timeline) */}
-        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 lg:gap-0">
-          {/* Middle Column / Hero: Order 1 on mobile, Order 2 on desktop */}
+        {/* 3-Column Newspaper Top Section: Left column (Side dispatches), Breaking News (Hero lead story), Daily feed (Timeline) */}
+        <div className="w-full flex flex-col lg:grid lg:grid-cols-12 gap-8 lg:gap-0">
+          {/* Left Column: Order 2 on mobile, Column 1 on desktop (Cols 1-3) */}
           <div
-            className={`order-1 lg:order-2 lg:col-span-6 ${
-              mobileSectionTab !== 'all' && mobileSectionTab !== 'breaking'
-                ? 'hidden lg:block'
-                : 'block'
-            }`}
-          >
-            <BreakingNews
-              articles={
-                filteredArticles.length > 0
-                  ? filteredArticles
-                  : combinedArticles.filter((a) => a.isBreaking)
-              }
-              language={language}
-              customization={frontPage?.heroCustomization}
-              secondaryArticleIds={frontPage?.heroSecondaryIds}
-              onSelectArticle={handleOpenArticleModal}
-              onOpenLightbox={(imageUrl, title, caption) =>
-                setLightboxInfo({ isOpen: true, imageUrl, title, caption })
-              }
-            />
-          </div>
-
-          {/* Left Column: Order 2 on mobile, Order 1 on desktop */}
-          <div
-            className={`order-2 lg:order-1 lg:col-span-3 ${
-              mobileSectionTab !== 'all' && mobileSectionTab !== 'popular'
-                ? 'hidden lg:block'
-                : 'block'
-            }`}
+            id="sidebar-section"
+            className="w-full min-w-0 order-2 lg:order-1 lg:col-span-3 lg:col-start-1"
           >
             <LeftSidebar
               popularArticles={curatedPopularArticles}
@@ -616,13 +604,31 @@ export default function App() {
             />
           </div>
 
-          {/* Right Column (Daily Feed): Order 3 on mobile and desktop */}
+          {/* Center Column: Order 1 on mobile, Column 2 on desktop (Cols 4-9) */}
           <div
-            className={`order-3 lg:order-3 lg:col-span-3 lg:pl-6 ${
-              mobileSectionTab !== 'all' && mobileSectionTab !== 'feed'
-                ? 'hidden lg:block'
-                : 'block'
-            }`}
+            id="breaking-section"
+            className="w-full min-w-0 order-1 lg:order-2 lg:col-span-6 lg:col-start-4"
+          >
+            <BreakingNews
+              articles={
+                filteredArticles.length > 0
+                  ? filteredArticles
+                  : combinedArticles.filter((a) => a.isBreaking)
+              }
+              language={language}
+              customization={frontPage?.heroCustomization}
+              secondaryArticleIds={frontPage?.heroSecondaryIds}
+              onSelectArticle={handleOpenArticleModal}
+              onOpenLightbox={(imageUrl, title, caption) =>
+                setLightboxInfo({ isOpen: true, imageUrl, title, caption })
+              }
+            />
+          </div>
+
+          {/* Right Column: Order 3 on mobile, Column 3 on desktop (Cols 10-12) */}
+          <div
+            id="feed-section"
+            className="w-full min-w-0 order-3 lg:order-3 lg:col-span-3 lg:col-start-10 lg:pl-6"
           >
             <DailyFeed
               articles={curatedDailyFeedArticles}
@@ -635,20 +641,14 @@ export default function App() {
               language={language}
               onSelectArticle={handleOpenArticleModal}
               onViewMore={() => {
-                window.scrollTo({ top: 800, behavior: 'smooth' });
+                document.getElementById('featured-section')?.scrollIntoView({ behavior: 'smooth' });
               }}
             />
           </div>
         </div>
 
         {/* Featured Stories 6-Card Grid & Newsletter */}
-        <div
-          className={`${
-            mobileSectionTab !== 'all' && mobileSectionTab !== 'featured'
-              ? 'hidden lg:block'
-              : 'block'
-          }`}
-        >
+        <div id="featured-section" className="w-full block">
           <FeaturedStories
             articles={combinedArticles}
             curatedArticles={curatedFeaturedArticles}
@@ -717,7 +717,7 @@ export default function App() {
         <button
           onClick={() => {
             setMobileSectionTab('feed');
-            window.scrollTo({ top: 180, behavior: 'smooth' });
+            document.getElementById('feed-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
           className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-black cursor-pointer transition-colors ${
             mobileSectionTab === 'feed' ? 'text-black font-extrabold' : 'text-black/70'

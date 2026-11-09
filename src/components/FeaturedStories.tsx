@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Article, getLocalizedArticle } from '../data/newspaperData';
 import { CheckCircle2 } from 'lucide-react';
 import { Language, TRANSLATIONS } from '../data/translations';
+import { SocialShareButtons } from './SocialShareButtons';
 
 interface FeaturedStoriesProps {
   articles: Article[];
@@ -142,9 +143,25 @@ export const FeaturedStories: React.FC<FeaturedStoriesProps> = ({
               </h3>
 
               {/* Excerpt */}
-              <p className="font-serif text-[12.5px] leading-relaxed text-black">
+              <p className="font-serif text-[12.5px] leading-relaxed text-black mb-3">
                 {story.excerpt}
               </p>
+
+              {/* Direct Card Social Share Toolbar */}
+              <div 
+                onClick={(e) => e.stopPropagation()} 
+                className="mt-auto pt-2 border-t border-[#dfd0ba]/70"
+              >
+                <SocialShareButtons
+                  url={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?article=${encodeURIComponent(story.id)}` : ''}
+                  title={story.title}
+                  summary={story.excerpt}
+                  imageUrl={story.imageUrl}
+                  language={language}
+                  variant="compact"
+                  onOpenDesigner={() => onSelectArticle(story)}
+                />
+              </div>
             </article>
           );
         })}

@@ -8,6 +8,7 @@ import { MessageSquare, AlertCircle, ArrowRight } from 'lucide-react';
 import { Article, getLocalizedArticle } from '../data/newspaperData';
 import { Language, TRANSLATIONS } from '../data/translations';
 import { HeroAreaCustomization } from '../types/admin';
+import { SocialShareButtons } from './SocialShareButtons';
 
 interface BreakingNewsProps {
   articles: Article[];
@@ -283,13 +284,28 @@ export const BreakingNews: React.FC<BreakingNewsProps> = ({
               )}
 
               {/* Read more button */}
-              <button
-                onClick={() => onSelectArticle(heroArticle)}
-                className="text-[11px] font-bold tracking-[0.08em] uppercase text-black border-b-2 border-black pb-0.5 hover:opacity-70 transition-opacity cursor-pointer inline-flex items-center gap-1 min-h-[36px]"
-              >
-                <span>{t.readMore}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                <button
+                  onClick={() => onSelectArticle(heroArticle)}
+                  className="text-[11px] font-bold tracking-[0.08em] uppercase text-black border-b-2 border-black pb-0.5 hover:opacity-70 transition-opacity cursor-pointer inline-flex items-center gap-1 min-h-[36px]"
+                >
+                  <span>{t.readMore}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Direct Social Media Share Bar on Front Page Hero Article */}
+              <div className="pt-3 border-t border-[#dfd0ba]">
+                <SocialShareButtons
+                  url={typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}?article=${encodeURIComponent(heroArticle.id)}` : ''}
+                  title={heroArticle.title}
+                  summary={heroArticle.excerpt}
+                  imageUrl={heroArticle.imageUrl}
+                  language={language}
+                  variant="bar"
+                  onOpenDesigner={() => onSelectArticle(heroArticle)}
+                />
+              </div>
             </article>
           )}
 

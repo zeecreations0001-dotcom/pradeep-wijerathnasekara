@@ -69,8 +69,8 @@ export const ArticlesTab: React.FC<ArticlesTabProps> = ({
   const pageSize = 8;
 
   const role = currentUser?.role || 'reporter';
-  const canPublish = role === 'super_admin' || role === 'editor';
-  const canDeleteAny = role === 'super_admin';
+  const canPublish = true;
+  const canDeleteAny = role === 'super_admin' || role === 'editor';
 
   // Filtered and sorted list
   const filteredArticles = useMemo(() => {
@@ -82,9 +82,9 @@ export const ArticlesTab: React.FC<ArticlesTabProps> = ({
       // Search
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
-        const matchTitle = art.headline.toLowerCase().includes(q) || (art.headlineSi && art.headlineSi.toLowerCase().includes(q));
-        const matchReporter = art.reporterName.toLowerCase().includes(q);
-        const matchDateline = art.dateline?.toLowerCase().includes(q);
+        const matchTitle = (art.headline || '').toLowerCase().includes(q) || (art.headlineSi && art.headlineSi.toLowerCase().includes(q));
+        const matchReporter = (art.reporterName || '').toLowerCase().includes(q);
+        const matchDateline = (art.dateline || '').toLowerCase().includes(q);
         if (!matchTitle && !matchReporter && !matchDateline) return false;
       }
       // Section

@@ -9,46 +9,65 @@ import { Article as AdminArticle, BreakingNewsItem, FrontPageLayout, SiteSetting
 import { Article as PublicArticle } from '../data/newspaperData';
 
 export function mapAdminArticleToPublic(art: AdminArticle, isHero: boolean = false): PublicArticle {
-  // Convert html paragraphs to array of string paragraphs
+  // Convert html paragraphs to array of clean string paragraphs
   const cleanParagraphs = art.content
     ? art.content
         .split(/<\/p>/i)
         .map((p) => p.replace(/<[^>]+>/g, '').trim())
         .filter(Boolean)
-    : [art.excerpt];
+    : [];
 
   const cleanParagraphsSi = art.contentSi
     ? art.contentSi
-        .split(/\n+/)
-        .map((p) => p.trim())
+        .split(/<\/p>|\n+/)
+        .map((p) => p.replace(/<[^>]+>/g, '').trim())
         .filter(Boolean)
     : undefined;
 
+  const validContent =
+    cleanParagraphs.length > 0
+      ? cleanParagraphs
+      : cleanParagraphsSi && cleanParagraphsSi.length > 0
+      ? cleanParagraphsSi
+      : [art.excerpt || art.headline || 'News dispatch'];
+
+  const safeDate = new Date(art.publishedAt || art.createdAt || Date.now());
+  const finalDate = isNaN(safeDate.getTime()) ? new Date() : safeDate;
+
   return {
     id: art.id,
-    title: art.headline,
-    titleSi: art.headlineSi,
-    category: art.sectionId.toUpperCase(),
-    categorySi: art.sectionId === 'world' ? 'ලෝකය' : art.sectionId === 'politics' ? 'දේශපාලන' : art.sectionId === 'business' ? 'ව්‍යාපාරික' : art.sectionId === 'tech' ? 'තාක්ෂණය' : 'පුවත්',
+    title: art.headline || art.headlineSi || 'Untitled Dispatch',
+    titleSi: art.headlineSi || art.headline,
+    category: (art.sectionId || 'world').toUpperCase(),
+    categorySi:
+      art.sectionId === 'world'
+        ? 'ලෝකය'
+        : art.sectionId === 'politics'
+        ? 'දේශපාලන'
+        : art.sectionId === 'business'
+        ? 'ව්‍යාපාරික'
+        : art.sectionId === 'tech'
+        ? 'තාක්ෂණය'
+        : 'පුවත්',
     categorySecondary: art.subsection,
-    date: new Date(art.publishedAt || art.createdAt).toLocaleDateString('en-US', {
+    date: finalDate.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     }),
-    dateSi: new Date(art.publishedAt || art.createdAt).toLocaleDateString('si-LK', {
+    dateSi: finalDate.toLocaleDateString('si-LK', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
     }),
-    author: art.reporterName,
-    authorSi: art.reporterName,
+    author: art.reporterName || 'Staff Correspondent',
+    authorSi: art.reporterName || 'කාර්ය මණ්ඩල වාර්තාකරු',
     commentsCount: 2,
-    excerpt: art.excerpt,
-    excerptSi: art.excerptSi,
-    content: cleanParagraphs.length > 0 ? cleanParagraphs : [art.excerpt],
-    contentSi: cleanParagraphsSi,
-    imageUrl: art.featuredImage,
+    excerpt: art.excerpt || art.excerptSi || art.headline,
+    excerptSi: art.excerptSi || art.excerpt || art.headlineSi,
+    content: validContent,
+    contentSi: cleanParagraphsSi || validContent,
+    imageUrl: art.featuredImage || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=1200',
     imageCaption: art.imageCaption,
     isHero: isHero || art.isSticky,
     isBreaking: art.priorityTag === 'breaking' || art.priorityTag === 'developing',
@@ -56,7 +75,7 @@ export function mapAdminArticleToPublic(art: AdminArticle, isHero: boolean = fal
     isFeatured: art.priorityTag === 'exclusive' || art.isSticky,
     isLatest: true,
     isPopular: (art.views || 0) > 8000,
-    tags: art.tags,
+    tags: art.tags && art.tags.length > 0 ? art.tags : ['News'],
     readTime: `${art.readingTimeMinutes || 4} MIN READ`,
     readTimeSi: `විනාඩි ${art.readingTimeMinutes || 4} ක කියවීමක්`,
   };

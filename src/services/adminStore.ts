@@ -822,9 +822,12 @@ const KEYS = {
 // Safe storage access helper
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+      return fallback;
+    }
+    const raw = window.localStorage.getItem(key);
     if (!raw) {
-      localStorage.setItem(key, JSON.stringify(fallback));
+      window.localStorage.setItem(key, JSON.stringify(fallback));
       return fallback;
     }
     return JSON.parse(raw);
@@ -835,7 +838,9 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 
 function saveToStorage<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    }
   } catch (err) {
     console.error(`Failed to write to localStorage for key: ${key}`, err);
   }
@@ -1133,7 +1138,8 @@ export const NewsroomStore = {
     const now = new Date().toISOString();
 
     // Auto-calculate reading time (~200 words/min)
-    const wordCount = (article.content || '').replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length;
+    const textForCount = (article.content || '') + ' ' + (article.contentSi || '');
+    const wordCount = textForCount.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length;
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
     const finalArticle: Article = {
@@ -1143,13 +1149,15 @@ export const NewsroomStore = {
       publishedAt: article.editorialStatus === 'published' ? (article.publishedAt || now) : article.publishedAt,
     };
 
+    const displayTitle = finalArticle.headline || finalArticle.headlineSi || 'Untitled Dispatch';
+
     if (index >= 0) {
       articles[index] = finalArticle;
       this.logActivity({
         action: 'update',
         targetType: 'article',
         targetId: finalArticle.id,
-        targetTitle: finalArticle.headline,
+        targetTitle: displayTitle,
         details: `Updated article status to ${finalArticle.editorialStatus}`,
       });
     } else {
@@ -1158,7 +1166,7 @@ export const NewsroomStore = {
         action: 'create',
         targetType: 'article',
         targetId: finalArticle.id,
-        targetTitle: finalArticle.headline,
+        targetTitle: displayTitle,
         details: `Created new article in status: ${finalArticle.editorialStatus}`,
       });
     }

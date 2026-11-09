@@ -21,6 +21,65 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMsg: string): Prom
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+// Fast neural machine translation helper for full articles
+async function translateTextViaMyMemory(text: string, sl: string, tl: string): Promise<string> {
+  if (!text || !text.trim()) return '';
+  const clean = text.trim();
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${sl}|${tl}`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'HeraldNewsroom/1.0' } });
+  if (!res.ok) throw new Error(`MyMemory HTTP ${res.status}`);
+  const data = await res.json();
+  const result = data?.responseData?.translatedText;
+  if (!result || result.includes('MYMEMORY WARNING')) {
+    throw new Error('MyMemory quota warning or invalid response');
+  }
+  return result;
+}
+
+async function translateArticleField(fullText: string, sl: string, tl: string): Promise<string> {
+  if (!fullText || !fullText.trim()) return '';
+
+  // Split paragraphs by </p> or double newline
+  const rawParas = fullText
+    .split(/<\/p>|\n\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  // Translate all paragraphs in parallel
+  const translatedParas = await Promise.all(
+    rawParas.map(async (rawPara) => {
+      const hasPTag = rawPara.startsWith('<p') || fullText.includes('<p>');
+      const cleanText = rawPara.replace(/<[^>]+>/g, '').trim();
+      if (!cleanText) return '';
+
+      // Split into sentences if paragraph is long
+      const sentenceChunks = cleanText.split(/([.!?।]+[\s$])/);
+      const translatedChunks: string[] = [];
+      let buffer = '';
+
+      for (const chunk of sentenceChunks) {
+        if ((buffer + chunk).length > 350) {
+          if (buffer.trim()) {
+            const trans = await translateTextViaMyMemory(buffer, sl, tl);
+            translatedChunks.push(trans);
+            buffer = '';
+          }
+        }
+        buffer += chunk;
+      }
+      if (buffer.trim()) {
+        const trans = await translateTextViaMyMemory(buffer, sl, tl);
+        translatedChunks.push(trans);
+      }
+
+      const paraText = translatedChunks.join(' ');
+      return hasPTag ? `<p>${paraText}</p>` : paraText;
+    })
+  );
+
+  return translatedParas.filter((p) => p.length > 0).join('\n\n');
+}
+
 // Translation endpoint for articles
 app.post('/api/translate-article', async (req, res) => {
   try {
@@ -38,7 +97,7 @@ app.post('/api/translate-article', async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     const isKeyAvailable = Boolean(apiKey && apiKey.trim() && apiKey !== 'MY_GEMINI_API_KEY');
 
-    // 1. Try Gemini API if API key is configured with fast 1.2-second timeout
+    // 1. Try Gemini API if API key is configured with fast 7.5-second timeout
     if (isKeyAvailable && apiKey) {
       try {
         const ai = new GoogleGenAI({
@@ -95,7 +154,6 @@ ${content}
           },
         });
 
-        // 7.5s timeout gives Gemini ample time to translate full articles
         const response = await withTimeout(apiCall, 7500, 'Gemini request timed out');
         const parsed = JSON.parse(response.text || '{}');
         if (parsed.translatedTitle || parsed.translatedContent) {
@@ -110,11 +168,37 @@ ${content}
         }
       } catch (aiErr: any) {
         console.warn('[Gemini AI Translation Error]', aiErr?.message || aiErr);
-        // Fall through immediately to built-in translator
+        // Fall through immediately to neural translation engine
       }
     }
 
-    // 2. Instant resilient fallback translation engine
+    // 2. High-speed neural translation engine (translates entire full article text)
+    try {
+      const [neuralTitle, neuralExcerpt, neuralContent] = await withTimeout(
+        Promise.all([
+          title.trim() ? translateTextViaMyMemory(title, sourceLanguage, targetLanguage) : Promise.resolve(''),
+          excerpt.trim() ? translateTextViaMyMemory(excerpt, sourceLanguage, targetLanguage) : Promise.resolve(''),
+          content.trim() ? translateArticleField(content, sourceLanguage, targetLanguage) : Promise.resolve(''),
+        ]),
+        10000,
+        'Neural translation timed out'
+      );
+
+      if (neuralTitle || neuralContent) {
+        return res.json({
+          success: true,
+          engine: 'neural-translator',
+          translatedTitle: neuralTitle || title,
+          translatedExcerpt: neuralExcerpt || excerpt,
+          translatedContent: neuralContent || content,
+        });
+      }
+    } catch (neuralErr: any) {
+      console.warn('[Neural Translation Error]', neuralErr?.message || neuralErr);
+      // Fall through to dictionary fallback
+    }
+
+    // 3. Instant resilient fallback translation engine
     const fallback = fallbackTranslateArticle(title, excerpt, content, targetLanguage);
     return res.json({
       success: true,

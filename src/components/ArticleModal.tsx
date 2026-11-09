@@ -268,6 +268,15 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
         });
 
         if (res.success) {
+          const parseParagraphs = (raw: string): string[] => {
+            if (!raw) return [];
+            const list = raw
+              .split(/<\/p>|<br\s*\/?>|\n\n+/)
+              .map((p) => p.replace(/<[^>]+>/g, '').trim())
+              .filter((p) => p.length > 0);
+            return list.length > 0 ? list : [raw.replace(/<[^>]+>/g, '').trim()];
+          };
+
           // Preserve the original Sinhala text in titleSi/contentSi so reader can seamlessly toggle back
           const preservedTitleSi =
             dynamicArticle.titleSi || (isSinhalaText(dynamicArticle.title) ? dynamicArticle.title : undefined);
@@ -283,18 +292,18 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
             title: res.translatedTitle || dynamicArticle.title,
             excerpt: res.translatedExcerpt || dynamicArticle.excerpt,
             content: res.translatedContent
-              ? res.translatedContent.split('\n\n').filter((p) => p.trim().length > 0)
+              ? parseParagraphs(res.translatedContent)
               : dynamicArticle.content,
             titleSi: preservedTitleSi,
             contentSi: preservedContentSi,
           };
           setDynamicArticle(updated);
           setCurrentArticleLang('en');
-          setTranslationToast('✓ Article successfully translated to English (ඉංග්‍රීසි භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
-          setTimeout(() => setTranslationToast(null), 3500);
+          setTranslationToast('✓ Entire article successfully translated to English (ඉංග්‍රීසි භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
+          setTimeout(() => setTranslationToast(null), 4000);
         } else {
           setTranslationToast(res.error || 'Translation to English failed. Please try again.');
-          setTimeout(() => setTranslationToast(null), 3500);
+          setTimeout(() => setTranslationToast(null), 4000);
         }
       } else {
         // Translating from English to Sinhala
@@ -315,21 +324,30 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
         });
 
         if (res.success) {
+          const parseParagraphs = (raw: string): string[] => {
+            if (!raw) return [];
+            const list = raw
+              .split(/<\/p>|<br\s*\/?>|\n\n+/)
+              .map((p) => p.replace(/<[^>]+>/g, '').trim())
+              .filter((p) => p.length > 0);
+            return list.length > 0 ? list : [raw.replace(/<[^>]+>/g, '').trim()];
+          };
+
           const updated: Article = {
             ...dynamicArticle,
             titleSi: res.translatedTitle || dynamicArticle.title,
             excerptSi: res.translatedExcerpt || dynamicArticle.excerpt,
             contentSi: res.translatedContent
-              ? res.translatedContent.split('\n\n').filter((p) => p.trim().length > 0)
+              ? parseParagraphs(res.translatedContent)
               : dynamicArticle.contentSi || dynamicArticle.content,
           };
           setDynamicArticle(updated);
           setCurrentArticleLang('si');
-          setTranslationToast('✓ Article successfully translated into Sinhala (සිංහල භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
-          setTimeout(() => setTranslationToast(null), 3500);
+          setTranslationToast('✓ Entire article successfully translated into Sinhala (සිංහල භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
+          setTimeout(() => setTranslationToast(null), 4000);
         } else {
           setTranslationToast(res.error || 'Translation to Sinhala failed. Please try again.');
-          setTimeout(() => setTranslationToast(null), 3500);
+          setTimeout(() => setTranslationToast(null), 4000);
         }
       }
     } catch (e: any) {
@@ -605,27 +623,27 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
                 <div className="flex items-center border border-[#dfcead] rounded-xs overflow-hidden bg-[#faf6ee] text-[10px] font-sans font-bold shadow-2xs">
                   <button
                     type="button"
-                    onClick={() => handleTranslateArticle('en')}
+                    onClick={() => handleTranslateArticle('en', currentArticleLang === 'si')}
                     disabled={isArticleTranslating}
                     className={`px-2 py-1 transition-colors cursor-pointer ${
                       currentArticleLang === 'en'
                         ? 'bg-black text-white font-black'
                         : 'text-black/75 hover:bg-[#fef08a] hover:text-black'
                     }`}
-                    title="Read article in English (Auto-translate if only Sinhala is available)"
+                    title="Read article in English (Auto-translate entire article into English)"
                   >
                     EN
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleTranslateArticle('si')}
+                    onClick={() => handleTranslateArticle('si', currentArticleLang === 'en')}
                     disabled={isArticleTranslating}
                     className={`px-2 py-1 transition-colors cursor-pointer ${
                       currentArticleLang === 'si'
                         ? 'bg-[#991b1b] text-white font-black'
                         : 'text-black/75 hover:bg-[#fef08a] hover:text-black'
                     }`}
-                    title="ලිපිය සිංහලෙන් කියවන්න (අවශ්‍ය නම් ඉංග්‍රීසියෙන් පරිවර්තනය කරයි)"
+                    title="ලිපිය සිංහලෙන් කියවන්න (සම්පූර්ණ ලිපිය සිංහලට පරිවර්තනය කරයි)"
                   >
                     සිංහල
                   </button>

@@ -21,6 +21,7 @@ import { CommentsTab } from './CommentsTab';
 import { NewsletterTab } from './NewsletterTab';
 import { SiteSettingsTab } from './SiteSettingsTab';
 import { SystemSettingsTab } from './SystemSettingsTab';
+import { CheckCircle2, X } from 'lucide-react';
 
 interface AdminPanelProps {
   onReturnToPublic: () => void;
@@ -45,6 +46,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [settings, setSettings] = useState<SiteSettings>(NewsroomStore.getSiteSettings());
   const [staffList, setStaffList] = useState<StaffMember[]>(NewsroomStore.getStaff());
   const [activityLogs, setActivityLogs] = useState(NewsroomStore.getActivityLogs());
+
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -100,8 +104,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleSaveArticle = (art: Article) => {
-    NewsroomStore.saveArticle(art);
-    setIsArticleModalOpen(false);
+    try {
+      const saved = NewsroomStore.saveArticle(art);
+      setIsArticleModalOpen(false);
+      setToast({
+        message:
+          saved.editorialStatus === 'published'
+            ? `✓ Article "${saved.headline || saved.headlineSi}" successfully published! It is now live on the newspaper front page.`
+            : `✓ Draft saved for "${saved.headline || saved.headlineSi}".`,
+        type: 'success',
+      });
+      setTimeout(() => setToast(null), 5000);
+    } catch (err: any) {
+      setToast({
+        message: `Failed to save article: ${err.message || 'Unknown error'}`,
+        type: 'error',
+      });
+    }
   };
 
   const handleDeleteArticle = (id: string) => {
@@ -225,6 +244,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       pendingReviewsCount={pendingReviewsCount}
       breakingActiveCount={breakingActiveCount}
     >
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl border text-xs sm:text-sm font-semibold transition-all animate-in slide-in-from-top-3 duration-200 ${
+            toast.type === 'success'
+              ? 'bg-emerald-950 text-emerald-100 border-emerald-600 shadow-emerald-900/30'
+              : toast.type === 'error'
+              ? 'bg-red-950 text-red-100 border-red-600 shadow-red-900/30'
+              : 'bg-stone-900 text-stone-100 border-stone-700'
+          }`}
+        >
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="max-w-md">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-stone-400 hover:text-white p-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {activeTab === 'dashboard' && (
         <DashboardTab
           articles={articles}

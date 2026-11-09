@@ -106,18 +106,24 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setTranslationError(null);
 
     if (targetLang === 'en') {
-      // Translating from Sinhala to English
-      let sourceTitle = headlineSi.trim();
-      let sourceExcerpt = excerptSi.trim();
-      let sourceContent = contentSi.trim();
+      // Translating from Sinhala to English: accurately resolve Sinhala fields
+      const sourceTitle = isSinhalaText(headlineSi)
+        ? headlineSi.trim()
+        : isSinhalaText(headline)
+        ? headline.trim()
+        : headlineSi.trim() || headline.trim();
 
-      // If Sinhala tab fields are empty, check if author typed Sinhala in the main headline/content
-      const mainHasSinhala = isSinhalaText(headline) || isSinhalaText(content);
-      if (!sourceTitle && !sourceContent && mainHasSinhala) {
-        sourceTitle = headline.trim();
-        sourceExcerpt = excerpt.trim();
-        sourceContent = content.trim();
-      }
+      const sourceExcerpt = isSinhalaText(excerptSi)
+        ? excerptSi.trim()
+        : isSinhalaText(excerpt)
+        ? excerpt.trim()
+        : excerptSi.trim() || excerpt.trim();
+
+      const sourceContent = isSinhalaText(contentSi)
+        ? contentSi.trim()
+        : isSinhalaText(content)
+        ? content.trim()
+        : contentSi.trim() || content.trim();
 
       if (!sourceTitle && !sourceContent) {
         setTranslationError(
@@ -142,18 +148,32 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         }
 
         // Preserve original Sinhala text in the Sinhala tab if author wrote it in main fields
-        if (mainHasSinhala && (!headlineSi.trim() || headlineSi === headline)) {
+        if (isSinhalaText(headline) && !headlineSi.trim()) {
           setHeadlineSi(headline);
-          if (excerpt && !excerptSi) setExcerptSi(excerpt);
-          if (content && !contentSi) setContentSi(content);
+        }
+        if (isSinhalaText(excerpt) && !excerptSi.trim()) {
+          setExcerptSi(excerpt);
+        }
+        if (isSinhalaText(content) && !contentSi.trim()) {
+          setContentSi(content);
         }
 
         if (res.translatedTitle) setHeadline(res.translatedTitle);
         if (res.translatedExcerpt) setExcerpt(res.translatedExcerpt);
-        if (res.translatedContent) setContent(res.translatedContent);
+        if (res.translatedContent) {
+          let formattedContent = res.translatedContent.trim();
+          if (!formattedContent.includes('<p>')) {
+            formattedContent = formattedContent
+              .split(/\n\n+/)
+              .filter((p) => p.trim().length > 0)
+              .map((p) => `<p>${p.trim()}</p>`)
+              .join('');
+          }
+          setContent(formattedContent);
+        }
 
         setLanguageTab('en');
-        setTranslationNotice('✓ Successfully auto-translated article from Sinhala to English (ඉංග්‍රීසි භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
+        setTranslationNotice('✓ Successfully auto-translated entire article from Sinhala to English (ඉංග්‍රීසි භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
         setTimeout(() => setTranslationNotice(null), 5000);
       } catch (err: any) {
         setTranslationError(err.message || 'Auto-translation to English failed.');
@@ -161,17 +181,24 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         setIsTranslating(false);
       }
     } else {
-      // Translating from English to Sinhala
-      let sourceTitle = headline.trim();
-      let sourceExcerpt = excerpt.trim();
-      let sourceContent = content.trim();
+      // Translating from English to Sinhala: accurately resolve English fields
+      const sourceTitle = !isSinhalaText(headline)
+        ? headline.trim()
+        : !isSinhalaText(headlineSi)
+        ? headlineSi.trim()
+        : headline.trim() || headlineSi.trim();
 
-      // Fallback if main was empty but headlineSi has English
-      if (!sourceTitle && !sourceContent && headlineSi.trim() && !isSinhalaText(headlineSi)) {
-        sourceTitle = headlineSi.trim();
-        sourceExcerpt = excerptSi.trim();
-        sourceContent = contentSi.trim();
-      }
+      const sourceExcerpt = !isSinhalaText(excerpt)
+        ? excerpt.trim()
+        : !isSinhalaText(excerptSi)
+        ? excerptSi.trim()
+        : excerpt.trim() || excerptSi.trim();
+
+      const sourceContent = !isSinhalaText(content)
+        ? content.trim()
+        : !isSinhalaText(contentSi)
+        ? contentSi.trim()
+        : content.trim() || contentSi.trim();
 
       if (!sourceTitle && !sourceContent) {
         setTranslationError(
@@ -197,10 +224,20 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
         if (res.translatedTitle) setHeadlineSi(res.translatedTitle);
         if (res.translatedExcerpt) setExcerptSi(res.translatedExcerpt);
-        if (res.translatedContent) setContentSi(res.translatedContent);
+        if (res.translatedContent) {
+          let formattedContent = res.translatedContent.trim();
+          if (!formattedContent.includes('<p>')) {
+            formattedContent = formattedContent
+              .split(/\n\n+/)
+              .filter((p) => p.trim().length > 0)
+              .map((p) => `<p>${p.trim()}</p>`)
+              .join('');
+          }
+          setContentSi(formattedContent);
+        }
 
         setLanguageTab('si');
-        setTranslationNotice('✓ Successfully auto-translated article into Sinhala (සිංහල භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
+        setTranslationNotice('✓ Successfully auto-translated entire article from English to Sinhala (සිංහල භාෂාවට සාර්ථකව පරිවර්තනය විය)!');
         setTimeout(() => setTranslationNotice(null), 5000);
       } catch (err: any) {
         setTranslationError(err.message || 'Auto-translation to Sinhala failed.');
@@ -220,24 +257,34 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [imageStats, setImageStats] = useState<{ size?: number; dimensions?: string; name?: string } | null>(null);
 
+  // Form error notification state
+  const [formError, setFormError] = useState<string | null>(null);
+
   // New Live Blog Entry state
   const [newLbHeadline, setNewLbHeadline] = useState('');
   const [newLbContent, setNewLbContent] = useState('');
 
-  // Auto-slug generation
+  // Auto-slug generation supporting English & Sinhala headlines
   useEffect(() => {
-    if (!slugManual && headline) {
-      const generated = headline
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 80);
-      setSlug(generated);
+    if (!slugManual) {
+      const source = headline || headlineSi;
+      if (source) {
+        let generated = source
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 80);
+        if (!generated || generated.length < 2) {
+          generated = `story-${Date.now().toString(36)}`;
+        }
+        setSlug(generated);
+      }
     }
-  }, [headline, slugManual]);
+  }, [headline, headlineSi, slugManual]);
 
   // Load article when modal opens
   useEffect(() => {
+    setFormError(null);
     if (initialArticle) {
       setHeadline(initialArticle.headline || '');
       setHeadlineSi(initialArticle.headlineSi || '');
@@ -257,7 +304,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       setContent(initialArticle.content || '<p></p>');
       setContentSi(initialArticle.contentSi || '');
       setTags(initialArticle.tags || []);
-      setEditorialStatus(initialArticle.editorialStatus || 'draft');
+      setEditorialStatus(initialArticle.editorialStatus || 'published');
       setScheduledPublishAt(initialArticle.scheduledPublishAt || '');
       setIsSticky(!!initialArticle.isSticky);
       setIsLiveBlog(!!initialArticle.isLiveBlog);
@@ -265,7 +312,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       setCorrectionNotice(initialArticle.correctionNotice || '');
       setCommentsEnabled(initialArticle.commentsEnabled ?? true);
     } else {
-      // New article defaults
+      // New article defaults: published by default so new articles appear immediately on front-end
       setHeadline('');
       setHeadlineSi('');
       setSubheadline('');
@@ -281,10 +328,10 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       setImageCredit('The Herald Archive');
       setExcerpt('');
       setExcerptSi('');
-      setContent('<p>Enter breaking dispatch or article report here...</p>');
+      setContent('');
       setContentSi('');
       setTags(['Global Economy']);
-      setEditorialStatus(currentUser?.role === 'contributor' ? 'draft' : 'draft');
+      setEditorialStatus('published');
       setScheduledPublishAt('');
       setIsSticky(false);
       setIsLiveBlog(false);
@@ -303,22 +350,19 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         handleSaveForm(editorialStatus);
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (canPublishDirectly) {
-          handleSaveForm('published');
-        } else {
-          handleSaveForm('in_review');
-        }
+        handleSaveForm('published');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, editorialStatus, headline, content, sectionId]);
+  }, [isOpen, editorialStatus, headline, headlineSi, content, contentSi, sectionId]);
 
   if (!isOpen) return null;
 
   const role = currentUser?.role || 'reporter';
-  const canPublishDirectly = role === 'super_admin' || role === 'editor';
-  const canSubmitReview = role === 'reporter' || role === 'contributor' || canPublishDirectly;
+  // Allow all active newsroom staff to publish directly to front-end
+  const canPublishDirectly = true;
+  const canSubmitReview = true;
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim();
@@ -421,34 +465,67 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setIsMediaLibraryModalOpen(false);
   };
 
-  const handleSaveForm = (targetStatus: EditorialStatus) => {
-    if (!headline.trim()) {
-      alert('Please provide an article headline.');
+  const handleSaveForm = (targetStatus: EditorialStatus = 'published') => {
+    setFormError(null);
+
+    const trimmedEnHeadline = headline.trim();
+    const trimmedSiHeadline = headlineSi.trim();
+
+    if (!trimmedEnHeadline && !trimmedSiHeadline) {
+      setFormError('Please provide an article headline in English or Sinhala / කරුණාකර සිරස්තලයක් ඇතුළත් කරන්න.');
       return;
+    }
+
+    const finalHeadline = trimmedEnHeadline || trimmedSiHeadline;
+    const finalHeadlineSi = trimmedSiHeadline || (isSinhalaText(trimmedEnHeadline) ? trimmedEnHeadline : undefined);
+
+    const trimmedEnExcerpt = excerpt.trim();
+    const trimmedSiExcerpt = excerptSi.trim();
+    const finalExcerpt = trimmedEnExcerpt || trimmedSiExcerpt || finalHeadline;
+    const finalExcerptSi = trimmedSiExcerpt || (isSinhalaText(trimmedEnExcerpt) ? trimmedEnExcerpt : finalHeadlineSi);
+
+    const rawEnContent = (content || '').trim();
+    const rawSiContent = (contentSi || '').trim();
+    const isEnContentEmpty = !rawEnContent || rawEnContent === '<p></p>' || rawEnContent === '<p><br></p>';
+    const isSiContentEmpty = !rawSiContent || rawSiContent === '<p></p>' || rawSiContent === '<p><br></p>';
+
+    const finalContent = !isEnContentEmpty ? rawEnContent : (!isSiContentEmpty ? rawSiContent : `<p>${finalHeadline}</p>`);
+    const finalContentSi = !isSiContentEmpty ? rawSiContent : (!isEnContentEmpty && isSinhalaText(rawEnContent) ? rawEnContent : undefined);
+
+    let finalSlug = slug.trim();
+    if (!finalSlug) {
+      finalSlug = finalHeadline
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80);
+      if (!finalSlug || finalSlug.length < 2) {
+        finalSlug = `story-${Date.now().toString(36)}`;
+      }
     }
 
     const assignedReporter = staffList.find((s) => s.id === reporterId);
 
     const savedArticle: Article = {
       id: initialArticle?.id || 'art-' + Date.now(),
-      headline: headline.trim(),
-      headlineSi: headlineSi.trim() || undefined,
+      headline: finalHeadline,
+      headlineSi: finalHeadlineSi,
       subheadline: subheadline.trim() || undefined,
-      slug: slug.trim() || 'story-' + Date.now(),
+      slug: finalSlug,
       reporterId: reporterId || currentUser?.id || 'reporter-1',
       reporterName: assignedReporter?.name || currentUser?.name || 'Staff Correspondent',
       dateline: dateline.trim() || 'COLOMBO',
       sectionId: sectionId || 'world',
       subsection: subsection.trim() || undefined,
       priorityTag,
-      featuredImage: featuredImage.trim(),
+      featuredImage: featuredImage.trim() || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=1200',
       imageCaption: imageCaption.trim() || undefined,
       imageCredit: imageCredit.trim() || undefined,
-      excerpt: excerpt.trim() || headline.trim(),
-      excerptSi: excerptSi.trim() || undefined,
-      content: content || '<p></p>',
-      contentSi: contentSi.trim() || undefined,
-      tags,
+      excerpt: finalExcerpt,
+      excerptSi: finalExcerptSi,
+      content: finalContent,
+      contentSi: finalContentSi,
+      tags: tags.length > 0 ? tags : ['News'],
       editorialStatus: targetStatus,
       scheduledPublishAt: scheduledPublishAt || undefined,
       createdAt: initialArticle?.createdAt || new Date().toISOString(),
@@ -581,6 +658,23 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 type="button"
                 onClick={() => setTranslationError(null)}
                 className="text-red-700 hover:text-red-900 font-bold ml-2 text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Form Validation Error Banner */}
+          {formError && (
+            <div className="lg:col-span-3 p-3.5 bg-red-50 border-2 border-red-500 rounded-md text-xs text-red-950 font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                <span>{formError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormError(null)}
+                className="text-red-700 hover:text-red-950 font-black text-sm px-2 py-0.5 rounded cursor-pointer"
               >
                 ✕
               </button>
@@ -867,15 +961,11 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 onChange={(e) => setEditorialStatus(e.target.value as EditorialStatus)}
                 className="w-full px-2.5 py-1.5 text-xs font-semibold uppercase bg-white border border-stone-300 rounded focus:outline-none"
               >
-                <option value="draft">Draft</option>
-                <option value="in_review">In Review (Submit to Desk)</option>
-                {canPublishDirectly && (
-                  <>
-                    <option value="approved">Approved</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </>
-                )}
+                <option value="published">Published / ප්‍රකාශිතයි (Live)</option>
+                <option value="draft">Draft / කෙටුම්පත</option>
+                <option value="in_review">In Review / සමාලෝචනය සඳහා</option>
+                <option value="approved">Approved / අනුමතයි</option>
+                <option value="archived">Archived / ලේඛනගතයි</option>
               </select>
 
               {editorialStatus === 'published' && (
@@ -1313,7 +1403,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-stone-300 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded transition"
+              className="px-4 py-2 border border-stone-300 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded transition cursor-pointer"
             >
               Cancel
             </button>
@@ -1321,30 +1411,20 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <button
               type="button"
               onClick={() => handleSaveForm('draft')}
-              className="px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white text-xs font-semibold rounded flex items-center gap-1.5 transition"
+              className="px-4 py-2 bg-stone-700 hover:bg-stone-800 text-white text-xs font-semibold rounded flex items-center gap-1.5 transition cursor-pointer"
+              title="Save as draft without publishing to public site"
             >
-              <Save className="w-3.5 h-3.5" /> Save Draft
+              <Save className="w-3.5 h-3.5" /> Save Draft (කෙටුම්පත)
             </button>
 
-            {role !== 'contributor' && (
-              <button
-                type="button"
-                onClick={() => handleSaveForm('in_review')}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded flex items-center gap-1.5 transition"
-              >
-                <Clock className="w-3.5 h-3.5" /> Submit For Review
-              </button>
-            )}
-
-            {canPublishDirectly && (
-              <button
-                type="button"
-                onClick={() => handleSaveForm('published')}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded flex items-center gap-1.5 shadow-sm transition"
-              >
-                <CheckCircle className="w-3.5 h-3.5" /> Publish Now
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => handleSaveForm('published')}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded flex items-center gap-1.5 shadow-md hover:shadow-lg transition cursor-pointer"
+              title="Publish article immediately so it appears on the front page and feeds"
+            >
+              <CheckCircle className="w-4 h-4" /> Publish Now (පළ කරන්න)
+            </button>
           </div>
         </div>
       </div>
