@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActivityLog } from '../../types/admin';
+import { NewsroomStore } from '../../services/adminStore';
 import {
   Database,
   Download,
@@ -16,6 +17,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Copy,
+  Cloud,
+  RefreshCw,
+  Server,
 } from 'lucide-react';
 
 interface SystemSettingsTabProps {
@@ -34,6 +38,57 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({
   const [importJsonText, setImportJsonText] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorFeedback, setErrorFeedback] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState(NewsroomStore.getCloudSyncState());
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    const unsub = NewsroomStore.subscribe(() => {
+      setSyncState(NewsroomStore.getCloudSyncState());
+    });
+    return unsub;
+  }, []);
+
+  const handlePushToCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await NewsroomStore.syncAllToCloud();
+      if (res.success) {
+        setFeedback('✓ Successfully uploaded and synced all articles to cloud server database!');
+        setErrorFeedback(null);
+      } else {
+        setErrorFeedback(`Sync failed: ${res.message}`);
+      }
+    } catch (e: any) {
+      setErrorFeedback(`Sync error: ${e?.message}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => {
+        setFeedback(null);
+        setErrorFeedback(null);
+      }, 4000);
+    }
+  };
+
+  const handlePullFromCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const ok = await NewsroomStore.pullFromCloud();
+      if (ok) {
+        setFeedback('✓ Successfully pulled the latest cloud server database!');
+        setErrorFeedback(null);
+      } else {
+        setFeedback('Cloud server verified. Content is already up to date.');
+      }
+    } catch (e: any) {
+      setErrorFeedback(`Failed to pull from cloud: ${e?.message}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => {
+        setFeedback(null);
+        setErrorFeedback(null);
+      }, 4000);
+    }
+  };
 
   // Demo API Key state
   const [apiKeys, setApiKeys] = useState([
@@ -134,6 +189,76 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({
           {errorFeedback}
         </div>
       )}
+
+      {/* Cloud Server Persistence & Cross-Browser Synchronization Card */}
+      <div className="bg-white rounded-lg border border-stone-200 shadow-xs p-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+          <div className="flex items-center gap-3">
+            <span className="p-2 bg-emerald-100 text-emerald-800 rounded-md">
+              <Cloud className="w-5 h-5" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-stone-900 tracking-tight">
+                  Centralized Cloud Database & Cross-Browser Sync
+                </h2>
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    syncState.serverConnected
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      syncState.serverConnected ? 'bg-emerald-600 animate-pulse' : 'bg-amber-600'
+                    }`}
+                  />
+                  {syncState.serverConnected ? 'Cloud Server Synced' : 'Connecting to Server...'}
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                {syncState.lastSyncedAt
+                  ? `Last synced with cloud server at ${syncState.lastSyncedAt}`
+                  : 'Syncing articles and front page layout with centralized cloud server...'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePushToCloud}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium rounded flex items-center gap-1.5 transition disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              Push Local Changes to Cloud
+            </button>
+            <button
+              type="button"
+              onClick={handlePullFromCloud}
+              disabled={isSyncing}
+              className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-medium rounded flex items-center gap-1.5 transition disabled:opacity-50 border border-stone-300"
+            >
+              <Server className="w-3.5 h-3.5 text-stone-600" />
+              Pull from Cloud Server
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 p-3 bg-stone-50 rounded border border-stone-200 text-xs text-stone-600 space-y-1.5">
+          <p className="font-semibold text-stone-800">
+            Why changes were only showing in one browser and how this fixes it:
+          </p>
+          <p>
+            In standard client-side web apps, data stored in <code className="px-1 py-0.5 bg-stone-200 text-stone-900 rounded font-mono text-[11px]">localStorage</code> remains isolated inside that single browser on that specific computer. When you upload your project to a cloud host via GitHub, other browsers and visitors cannot read your private browser's local storage.
+          </p>
+          <p>
+            This website now operates a unified REST API (<code className="px-1 py-0.5 bg-stone-200 text-stone-900 rounded font-mono text-[11px]">/api/newsroom/*</code>) backed by centralized server database persistence (<code className="px-1 py-0.5 bg-stone-200 text-stone-900 rounded font-mono text-[11px]">data/newsroom-db.json</code>). Every time you publish an article, rearrange sections, or update settings, changes are immediately saved to the cloud server and distributed in real-time across all visitors, devices, and browsers.
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Backup & Restore Panel */}

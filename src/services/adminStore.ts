@@ -860,6 +860,151 @@ function notifyAll(): void {
   });
 }
 
+// Cloud Database Synchronization Architecture
+export interface CloudSyncStatus {
+  status: 'synced' | 'syncing' | 'offline' | 'error';
+  lastSyncedAt: string | null;
+  serverConnected: boolean;
+  message?: string;
+}
+
+let cloudSyncStatus: CloudSyncStatus = {
+  status: 'syncing',
+  lastSyncedAt: null,
+  serverConnected: false,
+};
+
+async function apiPostServer(endpoint: string, data: any): Promise<any> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    cloudSyncStatus = {
+      status: 'synced',
+      lastSyncedAt: new Date().toLocaleTimeString(),
+      serverConnected: true,
+    };
+    notifyAll();
+    return json;
+  } catch (err: any) {
+    console.warn(`[Cloud Sync] API Post to ${endpoint} failed:`, err?.message);
+    cloudSyncStatus = {
+      status: 'offline',
+      lastSyncedAt: cloudSyncStatus.lastSyncedAt,
+      serverConnected: false,
+      message: err?.message,
+    };
+    notifyAll();
+    return null;
+  }
+}
+
+async function apiDeleteServer(endpoint: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const res = await fetch(endpoint, { method: 'DELETE' });
+    const ok = res.ok;
+    if (ok) {
+      cloudSyncStatus = {
+        status: 'synced',
+        lastSyncedAt: new Date().toLocaleTimeString(),
+        serverConnected: true,
+      };
+      notifyAll();
+    }
+    return ok;
+  } catch (err: any) {
+    console.warn(`[Cloud Sync] API Delete to ${endpoint} failed:`, err?.message);
+    return false;
+  }
+}
+
+let isFetchingServer = false;
+async function fetchFromCloudServer(force = false): Promise<boolean> {
+  if (typeof window === 'undefined' || isFetchingServer) return false;
+  isFetchingServer = true;
+  try {
+    const res = await fetch('/api/newsroom/store');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    if (payload?.success && payload?.data) {
+      const data = payload.data;
+      let hasChanges = false;
+
+      // Update local storage cache with server's source of truth
+      if (Array.isArray(data.articles) && data.articles.length > 0) {
+        saveToStorage(KEYS.ARTICLES, data.articles);
+        hasChanges = true;
+      }
+      if (Array.isArray(data.breakingNews) && data.breakingNews.length > 0) {
+        saveToStorage(KEYS.BREAKING_NEWS, data.breakingNews);
+        hasChanges = true;
+      }
+      if (data.frontPage && typeof data.frontPage === 'object') {
+        saveToStorage(KEYS.FRONT_PAGE, data.frontPage);
+        hasChanges = true;
+      }
+      if (data.settings && typeof data.settings === 'object') {
+        saveToStorage(KEYS.SETTINGS, data.settings);
+        hasChanges = true;
+      }
+      if (Array.isArray(data.sections) && data.sections.length > 0) {
+        saveToStorage(KEYS.SECTIONS, data.sections);
+        hasChanges = true;
+      }
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        saveToStorage(KEYS.TAGS, data.tags);
+        hasChanges = true;
+      }
+
+      cloudSyncStatus = {
+        status: 'synced',
+        lastSyncedAt: new Date().toLocaleTimeString(),
+        serverConnected: true,
+      };
+
+      if (hasChanges || force) {
+        notifyAll();
+      }
+      return true;
+    }
+    return false;
+  } catch (err: any) {
+    cloudSyncStatus = {
+      status: 'offline',
+      lastSyncedAt: cloudSyncStatus.lastSyncedAt,
+      serverConnected: false,
+      message: err?.message,
+    };
+    return false;
+  } finally {
+    isFetchingServer = false;
+  }
+}
+
+// Set up periodic cloud synchronization and window focus listener
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    fetchFromCloudServer();
+  }, 100);
+
+  setInterval(() => {
+    fetchFromCloudServer();
+  }, 15000);
+
+  window.addEventListener('focus', () => {
+    fetchFromCloudServer();
+  });
+  window.addEventListener('online', () => {
+    fetchFromCloudServer();
+  });
+}
+
 export const NewsroomStore = {
   subscribe(listener: Listener): () => void {
     listeners.add(listener);
@@ -1172,6 +1317,10 @@ export const NewsroomStore = {
     }
     saveToStorage(KEYS.ARTICLES, articles);
     notifyAll();
+
+    // Asynchronously synchronize with centralized cloud server database
+    apiPostServer('/api/newsroom/articles', finalArticle);
+
     return finalArticle;
   },
 
@@ -1187,6 +1336,9 @@ export const NewsroomStore = {
       details: 'Deleted news article',
     });
     notifyAll();
+
+    // Asynchronously delete from centralized cloud server database
+    apiDeleteServer('/api/newsroom/articles/' + encodeURIComponent(id));
   },
 
   bulkUpdateArticles(ids: string[], updates: Partial<Article>): void {
@@ -1257,6 +1409,7 @@ export const NewsroomStore = {
     }
     saveToStorage(KEYS.BREAKING_NEWS, items);
     notifyAll();
+    apiPostServer('/api/newsroom/breaking', items);
   },
 
   deleteBreakingNews(id: string): void {
@@ -1270,12 +1423,14 @@ export const NewsroomStore = {
       details: 'Removed breaking news item',
     });
     notifyAll();
+    apiPostServer('/api/newsroom/breaking', items);
   },
 
   reorderBreakingNews(newOrder: BreakingNewsItem[]): void {
     const items = newOrder.map((item, idx) => ({ ...item, order: idx + 1 }));
     saveToStorage(KEYS.BREAKING_NEWS, items);
     notifyAll();
+    apiPostServer('/api/newsroom/breaking', items);
   },
 
   getFrontPageLayout(): FrontPageLayout {
@@ -1308,6 +1463,7 @@ export const NewsroomStore = {
       details: 'Published new front page hero and block configuration',
     });
     notifyAll();
+    apiPostServer('/api/newsroom/frontpage', layout);
   },
 
   // EDITIONS
@@ -1519,6 +1675,7 @@ export const NewsroomStore = {
       details: 'Updated global site settings and typography preferences',
     });
     notifyAll();
+    apiPostServer('/api/newsroom/settings', settings);
   },
 
   // AUDIT & ACTIVITY LOGS
@@ -1590,11 +1747,44 @@ export const NewsroomStore = {
         details: 'Restored full newsroom database from JSON backup',
       });
       notifyAll();
+
+      // Mirror imported data into centralized cloud server database
+      apiPostServer('/api/newsroom/import', data);
       return true;
     } catch (err) {
       console.error('Failed to parse backup JSON:', err);
       return false;
     }
+  },
+
+  // CLOUD PERSISTENCE AND SYNCHRONIZATION HELPERS
+  getCloudSyncState(): CloudSyncStatus {
+    return cloudSyncStatus;
+  },
+
+  async syncAllToCloud(): Promise<{ success: boolean; message: string }> {
+    try {
+      const fullData = {
+        articles: this.getArticles(),
+        breakingNews: this.getBreakingNews(),
+        frontPage: this.getFrontPageLayout(),
+        settings: this.getSiteSettings(),
+        sections: this.getSections(),
+        tags: this.getTags(),
+        staff: this.getStaff(),
+      };
+      const res = await apiPostServer('/api/newsroom/sync', fullData);
+      if (res && res.success) {
+        return { success: true, message: 'All local changes successfully uploaded and synced with cloud server.' };
+      }
+      return { success: false, message: 'Server did not respond with success.' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Sync failed.' };
+    }
+  },
+
+  async pullFromCloud(): Promise<boolean> {
+    return await fetchFromCloudServer(true);
   },
 
   resetToDemo(): void {

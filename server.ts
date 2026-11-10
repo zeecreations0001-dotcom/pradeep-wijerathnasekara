@@ -226,6 +226,100 @@ ${content}
   }
 });
 
+import { serverDb } from './src/server/newsroomServerDb';
+
+// Newsroom Persistent Cloud Database Endpoints
+app.get('/api/newsroom/store', (req, res) => {
+  try {
+    const data = serverDb.getAll();
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/articles', (req, res) => {
+  try {
+    const article = req.body;
+    if (!article || !article.id) {
+      return res.status(400).json({ success: false, error: 'Article ID is required' });
+    }
+    const saved = serverDb.saveArticle(article);
+    res.json({ success: true, article: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/newsroom/articles/:id', (req, res) => {
+  try {
+    const ok = serverDb.deleteArticle(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/breaking', (req, res) => {
+  try {
+    const items = req.body;
+    const saved = serverDb.saveBreakingNews(items);
+    res.json({ success: true, items: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/frontpage', (req, res) => {
+  try {
+    const layout = req.body;
+    const saved = serverDb.saveFrontPage(layout);
+    res.json({ success: true, frontPage: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/settings', (req, res) => {
+  try {
+    const settings = req.body;
+    const saved = serverDb.saveSettings(settings);
+    res.json({ success: true, settings: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/sync', (req, res) => {
+  try {
+    const synced = serverDb.syncAll(req.body || {});
+    res.json({ success: true, data: synced });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/newsroom/export', (req, res) => {
+  try {
+    const data = serverDb.getAll();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="newsroom-database-backup.json"');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/newsroom/import', (req, res) => {
+  try {
+    const data = req.body;
+    const synced = serverDb.syncAll(data);
+    res.json({ success: true, data: synced });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Quick health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
